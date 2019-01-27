@@ -6,9 +6,9 @@ import se.eris.maven.NopLogWrapper;
 import se.eris.notnull.AnnotationConfiguration;
 import se.eris.notnull.Configuration;
 import se.eris.notnull.ExcludeConfiguration;
+import se.eris.util.CompiledVersionsTest;
 import se.eris.util.TestCompiler;
 import se.eris.util.TestCompilerOptions;
-import se.eris.util.VersionTest;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -25,7 +25,7 @@ public class VersionCompiler {
     }
 
     @NotNull
-    public static Map<String, TestCompiler> compile(final Path destinationBasedir, final VersionTest.Version[] javaVersions, final File... javaFiles) {
+    public static Map<String, TestCompiler> compile(final Path destinationBasedir, final CompiledVersionsTest.Version[] javaVersions, final File... javaFiles) {
         return compile(destinationBasedir, javaVersions, defaultConfiguration(), javaFiles);
     }
 
@@ -35,10 +35,10 @@ public class VersionCompiler {
     }
 
     @NotNull
-    public static Map<String, TestCompiler> compile(final Path destinationBasedir, final VersionTest.Version[] javaVersions, final Configuration configuration, final File... javaFiles) {
+    public static Map<String, TestCompiler> compile(final Path destinationBasedir, final CompiledVersionsTest.Version[] javaVersions, final Configuration configuration, final File... javaFiles) {
         final Map<String, TestCompiler> compilers = new HashMap<>();
-        for (final VersionTest.Version versionEnum : javaVersions) {
-            if (versionEnum == VersionTest.Version.DEFAULT) {
+        for (final CompiledVersionsTest.Version versionEnum : javaVersions) {
+            if (versionEnum == CompiledVersionsTest.Version.DEFAULT) {
                 continue;
             }
             String versionString = versionEnum.getVersionString();
@@ -69,14 +69,15 @@ public class VersionCompiler {
     }
 
     @NotNull
-    private static VersionTest.Version[] supportedJavaVersions(){
-        return VersionTest.Version.values();
+    private static CompiledVersionsTest.Version[] supportedJavaVersions(){
+        return CompiledVersionsTest.Version.values();
     }
 
     /**
      * @return single-quoted parameter name if compilers supports `-parameters` option, empty string otherwise.
      */
     @NotNull
+    @Deprecated
     public static String maybeName(final TestCompiler testCompiler, @NotNull final String parameterName) {
         return testCompiler.hasParametersSupport() ? String.format(" (parameter '%s')", parameterName) : "";
     }

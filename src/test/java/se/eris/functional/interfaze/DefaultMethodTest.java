@@ -1,19 +1,18 @@
 package se.eris.functional.interfaze;
 
+import se.eris.util.CompiledVersionsTest;
 import se.eris.util.ReflectionUtil;
 import se.eris.util.TestClass;
 import se.eris.util.TestCompiler;
-import se.eris.util.VersionTest;
-import se.eris.util.version.VersionCompiler;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static se.eris.util.VersionTest.Version.JAVA8;
+import static se.eris.util.CompiledVersionsTest.Version.JAVA8;
 
-@VersionTest(since = JAVA8, classes = "se.eris.interfaze.TestInterfaceWithDefaultMethod")
+@CompiledVersionsTest(since = JAVA8, sourceClasses = "se.eris.interfaze.TestInterfaceWithDefaultMethod")
 class DefaultMethodTest {
 
     private static final String METHOD_NAME_LAMBDA = "testDefaultMethodViaLambda";
@@ -22,8 +21,8 @@ class DefaultMethodTest {
     private static final String NOT_NULL_PARAMETER_METHOD_NAME = "annotatedParameterDefaultMethod";
     private static final String NOT_NULL_RETURN_METHOD_NAME = "annotatedReturnDefaultMethod";
 
-    @VersionTest
-    void inheritedDefaultMethodShouldValidate_ReturnValue(Class<?> outerClass, TestCompiler compiler) throws Exception {
+    @CompiledVersionsTest
+    void inheritedDefaultMethodShouldValidate_ParameterValue(TestCompiler compiler, Class<?> outerClass) throws Exception {
         final Object testInterfaceFromLambda = ReflectionUtil.simulateMethodCall(outerClass.getMethod(METHOD_NAME_LAMBDA));
         final Object testInterfaceFromAnonymous = ReflectionUtil.simulateMethodCall(outerClass.getMethod(METHOD_NAME_ANONYMOUS));
 
@@ -41,18 +40,17 @@ class DefaultMethodTest {
             assertEquals(
                     String.format(
                             "NotNull annotated argument 0%s of %s.%s must not be null",
-                            VersionCompiler.maybeName(compiler, "notNull"),
+                            compiler.getParameterName("notNull"),
                             new TestClass(outerClass.getCanonicalName()).nested("TestInterface").getAsmName(),
                             annotatedParameterDefaultMethod.getName()
                     ), exception.getMessage()
             );
+
         }
-
-
     }
 
-    @VersionTest
-	void inheritedDefaultMethodShouldValidate_ReturnValue(Class<?> outerClass) throws Exception {
+    @CompiledVersionsTest
+    void inheritedDefaultMethodShouldValidate_ReturnValue(TestCompiler testCompiler, Class<?> outerClass) throws Exception {
         final Object testInterfaceFromLambda = ReflectionUtil.simulateMethodCall(outerClass.getMethod(METHOD_NAME_LAMBDA));
         final Object testInterfaceFromAnonymous = ReflectionUtil.simulateMethodCall(outerClass.getMethod(METHOD_NAME_ANONYMOUS));
         for (Object testInstance : Arrays.asList(testInterfaceFromLambda, testInterfaceFromAnonymous)) {

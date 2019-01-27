@@ -12,6 +12,7 @@ import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringJoiner;
 
 public class TestCompiler {
 
@@ -85,4 +86,21 @@ public class TestCompiler {
     public boolean hasParametersSupport() {
         return options.targetHasParametersSupport();
     }
+
+    public String getParameterName(String parameterName){
+        return this.hasParametersSupport()
+                ? String.format(" (parameter '%s')", parameterName)
+                : "";
+    }
+
+    @Override
+    public String toString() {
+        final StringJoiner stringJoiner = new StringJoiner(" ", "TestCompiler: [ ", " ]");
+        for (String compilerOption : buildCompilerOptions()) {
+            stringJoiner.add(compilerOption);
+        }
+        return stringJoiner.toString();
+    }
+
+
 }

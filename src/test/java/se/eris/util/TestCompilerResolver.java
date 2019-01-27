@@ -1,18 +1,22 @@
 package se.eris.util;
 
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.ParameterContext;
+import org.junit.jupiter.api.extension.ParameterResolutionException;
+import org.junit.jupiter.api.extension.ParameterResolver;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
-import se.eris.util.VersionTest.Version;
+import se.eris.util.CompiledVersionsTest.Version;
 import se.eris.util.version.VersionCompiler;
 
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.StringJoiner;
 import java.util.stream.Stream;
 
-public class TestCompilerResolver implements ArgumentsProvider {
+public class TestCompilerResolver implements ArgumentsProvider, ParameterResolver {
 
     private static final String DEFAULT_SOURCE_DIRECTORY = "src/test/data";
     private static final String DEFAULT_TARGET_DIRECTORY = "target/test/data/classes";
@@ -20,14 +24,10 @@ public class TestCompilerResolver implements ArgumentsProvider {
     @Override
     public Stream<? extends Arguments> provideArguments(ExtensionContext extensionContext) {
         final TestSettings testSettings = new TestSettings();
-
-        System.out.println(testSettings);
         //overwrite default settings with explicitly set values on class
-        extensionContext.getTestClass().map(c -> c.getAnnotation(VersionTest.class)).ifPresent(testSettings::overwrite);
-        System.out.println(testSettings);
+        extensionContext.getTestClass().map(c -> c.getAnnotation(CompiledVersionsTest.class)).ifPresent(testSettings::overwrite);
         //overwrite settings with explicitly set values on method
-        extensionContext.getTestMethod().map(m -> m.getAnnotation(VersionTest.class)).ifPresent(testSettings::overwrite);
-        System.out.println(testSettings);
+        extensionContext.getTestMethod().map(m -> m.getAnnotation(CompiledVersionsTest.class)).ifPresent(testSettings::overwrite);
 
         if (testSettings.classes.length == 0) {
             throw new IllegalArgumentException("At least one class to compile must be provided.");
@@ -41,21 +41,31 @@ public class TestCompilerResolver implements ArgumentsProvider {
                 .map(tc -> tc.getJavaFile(new File(testSettings.sourceDirString)))
                 .toArray(File[]::new);
 
-        //filter all versions before VersionTest.since()
+        //filter all versions before CompiledVersionsTest.since()
         final Version[] versions = Arrays.stream(Version.values())
                 .filter(v -> v.ordinal() >= testSettings.sinceVersion.ordinal())
                 .toArray(Version[]::new);
 
+        final Map<String, TestCompiler> compilers = VersionCompiler.compile(targetDirectory, versions, sourceFiles);
+
         //map TestCompilers to junit Argument stream
-        return VersionCompiler.compile(targetDirectory, versions, sourceFiles).entrySet().stream()
-                .map(versionCompilerPair -> getParameterSet(versionCompilerPair.getKey(), versionCompilerPair.getValue(), testSettings.classes));
+        return Arrays.stream(versions)
+                .map(Version::getVersionString)
+                .map(version -> getParameterSet(version, compilers.get(version), testSettings.classes));
     }
 
+    /**
+     * @param version target and source java version
+     * @param testCompiler the test compiler instance
+     * @param classes sourceClasses to provide as arguments
+     * @return [TestCompiler testCompiler, Class... sourceClasses, ]
+     */
     private Arguments getParameterSet(String version, TestCompiler testCompiler, String[] classes) {
         Object[] arguments = new Object[classes.length + 1];
-        for (int i = 0; i < classes.length; i++) {
+        arguments[0] = testCompiler;
+        for (int i = 1; i < arguments.length; i++) {
             try {
-                arguments[i] = testCompiler.getCompiledClass(classes[i]);
+                arguments[i] = testCompiler.getCompiledClass(classes[i - 1]);
             } catch (ClassNotFoundException e) {
                 throw new RuntimeException(String.format(
                         "Failed to retrieve java version %s compiled class %s",
@@ -64,28 +74,38 @@ public class TestCompilerResolver implements ArgumentsProvider {
                 ));
             }
         }
-        arguments[arguments.length - 1] = testCompiler;
-        return () -> arguments;
+
+        return Arguments.of(arguments);
+    }
+
+    @Override
+    public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
+        return false;
+    }
+
+    @Override
+    public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
+        return null;
     }
 
     private static class TestSettings {
         Version sinceVersion = Version.JAVA7;
         String sourceDirString = DEFAULT_SOURCE_DIRECTORY;
         String targetDirString = DEFAULT_TARGET_DIRECTORY;
-        String[] classes = VersionTest.NO_CLASSES;
+        String[] classes = CompiledVersionsTest.NO_CLASSES;
 
-        void overwrite(VersionTest versionTest) {
-            if (versionTest.since() != VersionTest.NO_VERSION) {
-                sinceVersion = versionTest.since();
+        void overwrite(CompiledVersionsTest compiledVersionsTest) {
+            if (compiledVersionsTest.since() != CompiledVersionsTest.NO_VERSION) {
+                sinceVersion = compiledVersionsTest.since();
             }
-            if (!VersionTest.NO_DIRECTORY.equals(versionTest.sourceDir())) {
-                sourceDirString = versionTest.sourceDir();
+            if (!CompiledVersionsTest.NO_DIRECTORY.equals(compiledVersionsTest.sourceDir())) {
+                sourceDirString = compiledVersionsTest.sourceDir();
             }
-            if (!VersionTest.NO_DIRECTORY.equals(versionTest.targetDir())) {
-                targetDirString = versionTest.targetDir();
+            if (!CompiledVersionsTest.NO_DIRECTORY.equals(compiledVersionsTest.targetDir())) {
+                targetDirString = compiledVersionsTest.targetDir();
             }
-            if (versionTest.classes().length > 0) {
-                classes = versionTest.classes();
+            if (compiledVersionsTest.sourceClasses().length > 0) {
+                classes = compiledVersionsTest.sourceClasses();
             }
         }
 
