@@ -93,6 +93,10 @@ public class TestCompiler {
                 : "";
     }
 
+    public TestCompilerOptions getOptions() {
+        return this.options;
+    }
+
     @Override
     public String toString() {
         final StringJoiner stringJoiner = new StringJoiner(" ", "TestCompiler: [ ", " ]");

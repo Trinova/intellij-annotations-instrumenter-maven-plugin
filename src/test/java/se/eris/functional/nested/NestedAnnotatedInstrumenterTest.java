@@ -16,80 +16,72 @@
 package se.eris.functional.nested;
 
 import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.BeforeAll;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import se.eris.asm.AsmUtils;
-import se.eris.notnull.AnnotationConfiguration;
-import se.eris.notnull.Configuration;
-import se.eris.notnull.ExcludeConfiguration;
+import se.eris.util.CompiledVersionsTest;
 import se.eris.util.ReflectionUtil;
 import se.eris.util.TestClass;
 import se.eris.util.TestCompiler;
-import se.eris.util.TestSupportedJavaVersions;
-import se.eris.util.version.VersionCompiler;
 
-import java.io.File;
 import java.lang.reflect.Method;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
+@CompiledVersionsTest(sourceClasses = "se.eris.nested.TestNestedAnnotated")
 class NestedAnnotatedInstrumenterTest {
 
-    private static final File SRC_DIR = new File("src/test/data");
-    private static final Path DESTINATION_BASEDIR = new File("target/test/data/classes").toPath();
-
-    private static final Map<String, TestCompiler> compilers = new HashMap<>();
-    private static final TestClass testClass = new TestClass("se.eris.nested.TestNestedAnnotated");
-
-    @BeforeAll
-    static void beforeClass() {
-        final Configuration configuration = new Configuration(false,
-                new AnnotationConfiguration(),
-                new ExcludeConfiguration(Collections.emptySet()));
-        compilers.putAll(VersionCompiler.compile(DESTINATION_BASEDIR, configuration, testClass.getJavaFile(SRC_DIR)));
-    }
-
-    @TestSupportedJavaVersions
-    void syntheticMethod_dispatchesToSpecializedMethod(final String javaVersion) throws Exception {
-        final Class<?> superargClass = compilers.get(javaVersion).getCompiledClass(testClass.nested("Superarg").getName());
-        final TestClass sub = testClass.nested("Sub");
-        final Class<?> subClass = compilers.get(javaVersion).getCompiledClass(sub.getName());
+    @CompiledVersionsTest
+    void syntheticMethod_dispatchesToSpecializedMethod(final TestCompiler testCompiler, final Class<?> outerClass) throws Exception {
+        final TestClass testClass = new TestClass(outerClass.getName());
+        final Class<?> superargClass = testCompiler.getCompiledClass(testClass.nested("Superarg").getName());
+        final TestClass subTestClass = testClass.nested("Sub");
+        final Class<?> subClass = testCompiler.getCompiledClass(subTestClass.getName());
         final Method generalMethod = subClass.getMethod("overload", superargClass);
 
         assertTrue(generalMethod.isSynthetic());
         assertTrue(generalMethod.isBridge());
-        final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> ReflectionUtil.simulateMethodCall(subClass.getDeclaredConstructor().newInstance(), generalMethod, new Object[]{null}));
-        assertEquals("NotNull annotated argument 0" + VersionCompiler.maybeName(compilers.get(javaVersion), "s") + " of " + sub.getAsmName() + ".overload must not be null", exception.getMessage());
+
+        final IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> ReflectionUtil.simulateMethodCall(subClass.getDeclaredConstructor().newInstance(), generalMethod, new Object[]{null})
+        );
+        assertEquals(
+                String.format(
+                        "NotNull annotated argument 0%s of %s.overload must not be null",
+                        testCompiler.getParameterName("s"),
+                        subTestClass.getAsmName()
+                ), exception.getMessage()
+        );
     }
 
-    @TestSupportedJavaVersions
-    void onlySpecificMethod_isInstrumented(final String javaVersion) throws Exception {
+    @CompiledVersionsTest
+    void onlySpecificMethod_isInstrumented(final TestCompiler testCompiler, final Class<?> outerClass) throws Exception {
+        final TestClass testClass = new TestClass(outerClass.getName());
         // Check that only the specific method has a string annotation indicating instrumentation
         final TestClass sub = testClass.nested("Sub");
-        final ClassReader classReader = sub.getClassReader(DESTINATION_BASEDIR.resolve(javaVersion).toFile());
+        final ClassReader classReader = sub.getClassReader(testCompiler.getOptions().getDestination().toFile());
         final List<String> strings = getStringConstants(classReader, "overload");
-        final String onlyExpectedString = "(L" + testClass.nested("Subarg").getAsmName() + ";)V:" +
-                "NotNull annotated argument 0" + VersionCompiler.maybeName(compilers.get(javaVersion), "s") + " of " +
-                sub.getAsmName() + ".overload must not be null";
+        final String onlyExpectedString = String.format(
+                "(L%s;)V:NotNull annotated argument 0%s of %s.overload must not be null",
+                testClass.nested("Subarg").getAsmName(),
+                testCompiler.getParameterName("s"),
+                sub.getAsmName()
+        );
         assertEquals(Collections.singletonList(onlyExpectedString), strings);
     }
 
-    @TestSupportedJavaVersions
-    void nestedClassesSegmentIsPreserved(final String javaVersion) throws Exception {
+    @CompiledVersionsTest
+    void nestedClassesSegmentIsPreserved(final TestCompiler testCompiler, final Class<?> outerClass) throws Exception {
+        final TestClass testClass = new TestClass(outerClass.getName());
         // Check that only the specific method has a string annotation indicating instrumentation
         final TestClass preserved = testClass.nested("NestedClassesSegmentIsPreserved");
-        final ClassReader classReader = preserved.getClassReader(DESTINATION_BASEDIR.resolve(javaVersion).toFile());
+        final ClassReader classReader = preserved.getClassReader(testCompiler.getOptions().getDestination().toFile());
         final List<AsmInnerClass> asmInnerClasses = getAsmInnerClasses(classReader);
         assertEquals(2, asmInnerClasses.size());
         //self-entry
