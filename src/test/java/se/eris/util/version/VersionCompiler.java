@@ -8,39 +8,46 @@ import se.eris.notnull.Configuration;
 import se.eris.notnull.ExcludeConfiguration;
 import se.eris.util.TestCompiler;
 import se.eris.util.TestCompilerOptions;
-import se.eris.util.TestSupportedJavaVersions;
+import se.eris.util.VersionTest;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
+import static java.util.Collections.singleton;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class VersionCompiler {
 
-    private static final String[] SUPPORTED_VERSIONS = TestSupportedJavaVersions.SupportedVersions.getSupportedVersions();
-
+    @NotNull
     public static Map<String, TestCompiler> compile(final Path destinationBasedir, final File... javaFiles) {
-        final Configuration configuration = new Configuration(false,
-                new AnnotationConfiguration(notnull(), nullable()),
-                new ExcludeConfiguration(Collections.emptySet()));
-        return compile(destinationBasedir, configuration, javaFiles);
+        return compile(destinationBasedir, defaultConfiguration(), javaFiles);
+    }
+
+    @NotNull
+    public static Map<String, TestCompiler> compile(final Path destinationBasedir, final VersionTest.Version[] javaVersions, final File... javaFiles) {
+        return compile(destinationBasedir, javaVersions, defaultConfiguration(), javaFiles);
     }
 
     @NotNull
     public static Map<String, TestCompiler> compile(final Path destinationBasedir, final Configuration configuration, final File... javaFiles) {
+        return compile(destinationBasedir, supportedJavaVersions(), configuration, javaFiles);
+    }
+
+    @NotNull
+    public static Map<String, TestCompiler> compile(final Path destinationBasedir, final VersionTest.Version[] javaVersions, final Configuration configuration, final File... javaFiles) {
         final Map<String, TestCompiler> compilers = new HashMap<>();
-        for (final String version : SUPPORTED_VERSIONS) {
-            final Path destination = destinationBasedir.resolve(version);
-            final TestCompiler compiler = TestCompiler.create(TestCompilerOptions.from(destination, version));
-            if (!compiler.compile(javaFiles)) {
-                throw new RuntimeException("Compilation failed for version " + version);
+        for (final VersionTest.Version versionEnum : javaVersions) {
+            if (versionEnum == VersionTest.Version.DEFAULT) {
+                continue;
             }
-            compilers.put(version, compiler);
+            String versionString = versionEnum.getVersionString();
+            final Path destination = destinationBasedir.resolve(versionString);
+            final TestCompiler compiler = TestCompiler.create(TestCompilerOptions.from(destination, versionString));
+            if (!compiler.compile(javaFiles)) {
+                throw new RuntimeException("Compilation failed for version " + versionString);
+            }
+            compilers.put(versionString, compiler);
 
             final NotNullInstrumenter instrumenter = new NotNullInstrumenter(new NopLogWrapper());
             final int numberOfInstrumentedFiles = instrumenter.addNotNullAnnotations(destination, configuration, Collections.emptyList());
@@ -51,17 +58,19 @@ public class VersionCompiler {
     }
 
     @NotNull
-    private static Set<String> nullable() {
-        final Set<String> annotations = new HashSet<>();
-        annotations.add("org.jetbrains.annotations.Nullable");
-        return annotations;
+    private static Configuration defaultConfiguration() {
+        return new Configuration(
+                false,
+                new AnnotationConfiguration(
+                        singleton("org.jetbrains.annotations.NotNull"),
+                        singleton("org.jetbrains.annotations.Nullable")
+                ), new ExcludeConfiguration(Collections.emptySet())
+        );
     }
 
     @NotNull
-    private static Set<String> notnull() {
-        final Set<String> annotations = new HashSet<>();
-        annotations.add("org.jetbrains.annotations.NotNull");
-        return annotations;
+    private static VersionTest.Version[] supportedJavaVersions(){
+        return VersionTest.Version.values();
     }
 
     /**
