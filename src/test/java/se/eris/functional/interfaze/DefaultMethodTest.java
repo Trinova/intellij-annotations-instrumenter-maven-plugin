@@ -41,7 +41,7 @@ class DefaultMethodTest {
                     String.format(
                             "NotNull annotated argument 0%s of %s.%s must not be null",
                             compiler.getParameterName("notNull"),
-                            new TestClass(outerClass.getCanonicalName()).nested("TestInterface").getAsmName(),
+                            new TestClass(outerClass.getName()).nested("TestInterface").getAsmName(),
                             annotatedParameterDefaultMethod.getName()
                     ), exception.getMessage()
             );
@@ -68,7 +68,7 @@ class DefaultMethodTest {
             assertEquals(
                     String.format(
                             "NotNull method %s.%s must not return null",
-                            new TestClass(outerClass.getCanonicalName()).nested("TestInterface").getAsmName(),
+                            new TestClass(outerClass.getName()).nested("TestInterface").getAsmName(),
                             annotatedReturnDefaultMethod.getName()
                     ), exception.getMessage()
             );

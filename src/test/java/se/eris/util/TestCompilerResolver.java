@@ -35,11 +35,13 @@ public class TestCompilerResolver implements ArgumentsProvider, ParameterResolve
 
         Path targetDirectory = new File(testSettings.targetDirString).toPath();
 
-        //map file name strings to java.io.File
+        //map file name strings of non nested classes (without `$` in the name) to java.io.File
         final File[] sourceFiles = Arrays.stream(testSettings.classes)
+                .filter(className -> !className.contains("$"))
                 .map(TestClass::new)
                 .map(tc -> tc.getJavaFile(new File(testSettings.sourceDirString)))
                 .toArray(File[]::new);
+
 
         //filter all versions before CompiledVersionsTest.since()
         final Version[] versions = Arrays.stream(Version.values())

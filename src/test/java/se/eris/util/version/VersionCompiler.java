@@ -12,9 +12,10 @@ import se.eris.util.TestCompilerOptions;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
-import static java.util.Collections.singleton;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class VersionCompiler {
@@ -61,15 +62,13 @@ public class VersionCompiler {
     private static Configuration defaultConfiguration() {
         return new Configuration(
                 false,
-                new AnnotationConfiguration(
-                        singleton("org.jetbrains.annotations.NotNull"),
-                        singleton("org.jetbrains.annotations.Nullable")
-                ), new ExcludeConfiguration(Collections.emptySet())
+                new AnnotationConfiguration(),
+                new ExcludeConfiguration(Collections.emptySet())
         );
     }
 
     @NotNull
-    private static CompiledVersionsTest.Version[] supportedJavaVersions(){
+    private static CompiledVersionsTest.Version[] supportedJavaVersions() {
         return CompiledVersionsTest.Version.values();
     }
 
