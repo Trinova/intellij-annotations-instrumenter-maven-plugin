@@ -1,22 +1,24 @@
 package se.eris.util;
 
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.api.extension.ParameterContext;
-import org.junit.jupiter.api.extension.ParameterResolutionException;
-import org.junit.jupiter.api.extension.ParameterResolver;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
+import se.eris.notnull.AnnotationConfiguration;
+import se.eris.notnull.Configuration;
+import se.eris.notnull.ExcludeConfiguration;
+import se.eris.notnull.instrumentation.ClassMatcher;
 import se.eris.util.CompiledVersionsTest.Version;
 import se.eris.util.version.VersionCompiler;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.StringJoiner;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class TestCompilerResolver implements ArgumentsProvider, ParameterResolver {
+import static java.util.Collections.emptySet;
+
+public class TestCompilerResolver implements ArgumentsProvider {
 
     private static final String DEFAULT_SOURCE_DIRECTORY = "src/test/data";
     private static final String DEFAULT_TARGET_DIRECTORY = "target/test/data/classes";
@@ -35,6 +37,24 @@ public class TestCompilerResolver implements ArgumentsProvider, ParameterResolve
 
         Path targetDirectory = new File(testSettings.targetDirString).toPath();
 
+        //filter all versions before CompiledVersionsTest.since()
+        final Version[] versions = Arrays.stream(Version.values())
+                .filter(v -> v.ordinal() >= testSettings.sinceVersion.ordinal())
+                .toArray(Version[]::new);
+
+
+        Configuration configuration = new Configuration(false, new AnnotationConfiguration(), new ExcludeConfiguration(emptySet()));
+        //overwrite default instrumentation configuration with explicit configuration on class
+        configuration = extensionContext.getTestClass()
+                .map(c -> c.getAnnotation(InstrumentationConfiguration.class))
+                .map(this::toConfiguration)
+                .orElse(configuration);
+        //overwrite instrumentation configuration with explicit configuration on method
+        configuration = extensionContext.getTestMethod()
+                .map(m -> m.getAnnotation(InstrumentationConfiguration.class))
+                .map(this::toConfiguration)
+                .orElse(configuration);
+
         //map file name strings of non nested classes (without `$` in the name) to java.io.File
         final File[] sourceFiles = Arrays.stream(testSettings.classes)
                 .filter(className -> !className.contains("$"))
@@ -42,18 +62,25 @@ public class TestCompilerResolver implements ArgumentsProvider, ParameterResolve
                 .map(tc -> tc.getJavaFile(new File(testSettings.sourceDirString)))
                 .toArray(File[]::new);
 
-
-        //filter all versions before CompiledVersionsTest.since()
-        final Version[] versions = Arrays.stream(Version.values())
-                .filter(v -> v.ordinal() >= testSettings.sinceVersion.ordinal())
-                .toArray(Version[]::new);
-
-        final Map<String, TestCompiler> compilers = VersionCompiler.compile(targetDirectory, versions, sourceFiles);
+        final Map<String, TestCompiler> compilers = VersionCompiler.compile(targetDirectory, versions, configuration, sourceFiles);
 
         //map TestCompilers to junit Argument stream
         return Arrays.stream(versions)
                 .map(Version::getVersionString)
                 .map(version -> getParameterSet(version, compilers.get(version), testSettings.classes));
+    }
+
+    private Configuration toConfiguration(InstrumentationConfiguration instrumentationConfiguration) {
+        final Set<ClassMatcher> classMatchers = Arrays.stream(instrumentationConfiguration.classMatcher())
+                .map(ClassMatcher::namePattern)
+                .collect(Collectors.toSet());
+
+        return new Configuration(
+                instrumentationConfiguration.implicit(),
+                new AnnotationConfiguration(
+                        new HashSet<>(Arrays.asList(instrumentationConfiguration.notNull())),
+                        new HashSet<>(Arrays.asList(instrumentationConfiguration.nullable()))
+                ), new ExcludeConfiguration(classMatchers));
     }
 
     /**
@@ -78,16 +105,6 @@ public class TestCompilerResolver implements ArgumentsProvider, ParameterResolve
         }
 
         return Arguments.of(arguments);
-    }
-
-    @Override
-    public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-        return false;
-    }
-
-    @Override
-    public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-        return null;
     }
 
     private static class TestSettings {
