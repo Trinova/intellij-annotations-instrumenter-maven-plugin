@@ -15,12 +15,16 @@
  */
 package se.eris.functional.test;
 
-import se.eris.util.*;
+import se.eris.util.ReflectionUtil;
+import se.eris.util.TestClass;
+import se.eris.util.TestCompiler;
+import se.eris.util.version.CompiledVersionsTest;
+import se.eris.util.version.InstrumentationConfiguration;
 
 import java.lang.reflect.Method;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static se.eris.util.CompiledVersionsTest.InjectCompiler.NO;
+import static se.eris.util.version.CompiledVersionsTest.InjectCompiler.NO;
 
 // an arbitrary second annotation for testing (not realistic use)
 @InstrumentationConfiguration(notNull = {"org.jetbrains.annotations.NotNull", "java.lang.Deprecated"})

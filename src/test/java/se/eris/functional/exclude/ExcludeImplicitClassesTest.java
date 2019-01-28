@@ -15,13 +15,17 @@
  */
 package se.eris.functional.exclude;
 
-import se.eris.util.*;
+import se.eris.util.ReflectionUtil;
+import se.eris.util.TestClass;
+import se.eris.util.TestCompiler;
+import se.eris.util.version.CompiledVersionsTest;
+import se.eris.util.version.InstrumentationConfiguration;
 
 import java.lang.reflect.Method;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static se.eris.util.CompiledVersionsTest.InjectCompiler.NO;
+import static se.eris.util.version.CompiledVersionsTest.InjectCompiler.NO;
 
 /**
  * Tests to verify that package exclusion works.

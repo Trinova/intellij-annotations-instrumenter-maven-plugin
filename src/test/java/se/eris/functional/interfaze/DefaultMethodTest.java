@@ -1,17 +1,17 @@
 package se.eris.functional.interfaze;
 
-import se.eris.util.CompiledVersionsTest;
 import se.eris.util.ReflectionUtil;
 import se.eris.util.TestClass;
 import se.eris.util.TestCompiler;
+import se.eris.util.version.CompiledVersionsTest;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static se.eris.util.CompiledVersionsTest.InjectCompiler.NO;
-import static se.eris.util.CompiledVersionsTest.Version.JAVA8;
+import static se.eris.util.version.CompiledVersionsTest.InjectCompiler.NO;
+import static se.eris.util.version.CompiledVersionsTest.Version.JAVA8;
 
 @CompiledVersionsTest(since = JAVA8, sourceClasses = "se.eris.interfaze.TestInterfaceWithDefaultMethod")
 class DefaultMethodTest {

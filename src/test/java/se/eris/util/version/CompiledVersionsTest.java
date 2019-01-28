@@ -1,4 +1,4 @@
-package se.eris.util;
+package se.eris.util.version;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;

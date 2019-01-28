@@ -1,4 +1,4 @@
-package se.eris.util;
+package se.eris.util.version;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

@@ -15,17 +15,17 @@
  */
 package se.eris.functional.implicit;
 
-import se.eris.util.CompiledVersionsTest;
 import se.eris.util.ReflectionUtil;
 import se.eris.util.TestClass;
 import se.eris.util.TestCompiler;
+import se.eris.util.version.CompiledVersionsTest;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static se.eris.util.CompiledVersionsTest.InjectCompiler.NO;
+import static se.eris.util.version.CompiledVersionsTest.InjectCompiler.NO;
 
 @CompiledVersionsTest(sourceClasses = "se.eris.implicit.TestImplicitClassAnnotation")
 class ImplicitClassAnnotationInstrumenterTest {

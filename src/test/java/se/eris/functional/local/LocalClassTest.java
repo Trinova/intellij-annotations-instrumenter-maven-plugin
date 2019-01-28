@@ -1,9 +1,9 @@
 package se.eris.functional.local;
 
-import se.eris.util.CompiledVersionsTest;
 import se.eris.util.ReflectionUtil;
 import se.eris.util.TestClass;
 import se.eris.util.TestCompiler;
+import se.eris.util.version.CompiledVersionsTest;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;

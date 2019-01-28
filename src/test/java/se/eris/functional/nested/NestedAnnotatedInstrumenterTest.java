@@ -21,10 +21,10 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import se.eris.asm.AsmUtils;
-import se.eris.util.CompiledVersionsTest;
 import se.eris.util.ReflectionUtil;
 import se.eris.util.TestClass;
 import se.eris.util.TestCompiler;
+import se.eris.util.version.CompiledVersionsTest;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;

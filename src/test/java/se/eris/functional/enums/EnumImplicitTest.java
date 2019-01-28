@@ -15,13 +15,13 @@
  */
 package se.eris.functional.enums;
 
-import se.eris.util.CompiledVersionsTest;
-import se.eris.util.InstrumentationConfiguration;
 import se.eris.util.ReflectionUtil;
+import se.eris.util.version.CompiledVersionsTest;
+import se.eris.util.version.InstrumentationConfiguration;
 
 import java.lang.reflect.Method;
 
-import static se.eris.util.CompiledVersionsTest.InjectCompiler.NO;
+import static se.eris.util.version.CompiledVersionsTest.InjectCompiler.NO;
 
 class EnumImplicitTest {
 

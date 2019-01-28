@@ -1,4 +1,4 @@
-package se.eris.util;
+package se.eris.util.version;
 
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.provider.Arguments;
@@ -7,13 +7,17 @@ import se.eris.notnull.AnnotationConfiguration;
 import se.eris.notnull.Configuration;
 import se.eris.notnull.ExcludeConfiguration;
 import se.eris.notnull.instrumentation.ClassMatcher;
-import se.eris.util.CompiledVersionsTest.InjectCompiler;
-import se.eris.util.CompiledVersionsTest.Version;
-import se.eris.util.version.VersionCompiler;
+import se.eris.util.TestClass;
+import se.eris.util.TestCompiler;
+import se.eris.util.version.CompiledVersionsTest.InjectCompiler;
+import se.eris.util.version.CompiledVersionsTest.Version;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -21,8 +25,6 @@ import static java.util.Collections.emptySet;
 
 public class TestCompilerResolver implements ArgumentsProvider {
 
-    private static final String DEFAULT_SOURCE_DIRECTORY = "src/test/data";
-    private static final String DEFAULT_TARGET_DIRECTORY = "target/test/data/classes";
 
     @Override
     public Stream<? extends Arguments> provideArguments(ExtensionContext extensionContext) {
@@ -114,39 +116,4 @@ public class TestCompilerResolver implements ArgumentsProvider {
         return Arguments.of(arguments);
     }
 
-    private static class TestSettings {
-        Version sinceVersion = Version.JAVA7;
-        String sourceDirString = DEFAULT_SOURCE_DIRECTORY;
-        String targetDirString = DEFAULT_TARGET_DIRECTORY;
-        String[] classes = CompiledVersionsTest.NO_CLASSES;
-        InjectCompiler injectCompiler = InjectCompiler.YES;
-
-        void overwrite(CompiledVersionsTest compiledVersionsTest) {
-            if (compiledVersionsTest.since() != CompiledVersionsTest.NO_VERSION) {
-                sinceVersion = compiledVersionsTest.since();
-            }
-            if (!CompiledVersionsTest.NO_DIRECTORY.equals(compiledVersionsTest.sourceDir())) {
-                sourceDirString = compiledVersionsTest.sourceDir();
-            }
-            if (!CompiledVersionsTest.NO_DIRECTORY.equals(compiledVersionsTest.targetDir())) {
-                targetDirString = compiledVersionsTest.targetDir();
-            }
-            if (compiledVersionsTest.sourceClasses().length > 0) {
-                classes = compiledVersionsTest.sourceClasses();
-            }
-            if (compiledVersionsTest.injectCompiler() != CompiledVersionsTest.NO_INJECT_COMPILER) {
-                injectCompiler = compiledVersionsTest.injectCompiler();
-            }
-        }
-
-        @Override
-        public String toString() {
-            return new StringJoiner(", ", TestSettings.class.getSimpleName() + "[", "]")
-                    .add("sinceVersion=" + sinceVersion)
-                    .add("sourceDirString='" + sourceDirString + "'")
-                    .add("targetDirString='" + targetDirString + "'")
-                    .add("classes=" + Arrays.toString(classes))
-                    .toString();
-        }
-    }
 }
