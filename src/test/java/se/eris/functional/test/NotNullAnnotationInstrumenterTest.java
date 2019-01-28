@@ -15,93 +15,94 @@
  */
 package se.eris.functional.test;
 
-import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.BeforeAll;
-import se.eris.notnull.AnnotationConfiguration;
-import se.eris.notnull.Configuration;
-import se.eris.notnull.ExcludeConfiguration;
-import se.eris.util.ReflectionUtil;
-import se.eris.util.TestClass;
-import se.eris.util.TestCompiler;
-import se.eris.util.TestSupportedJavaVersions;
-import se.eris.util.version.VersionCompiler;
+import se.eris.util.*;
 
-import java.io.File;
 import java.lang.reflect.Method;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
+// an arbitrary second annotation for testing (not realistic use)
+@InstrumentationConfiguration(notNull = {"org.jetbrains.annotations.NotNull", "java.lang.Deprecated"})
+@CompiledVersionsTest(sourceClasses = "se.eris.notnull.TestNotNull")
 class NotNullAnnotationInstrumenterTest {
 
-    private static final File SRC_DIR = new File("src/test/data");
-    private static final Path DESTINATION_BASEDIR = new File("target/test/data/classes").toPath();
-
-    private static final Map<String, TestCompiler> compilers = new HashMap<>();
-    private static final TestClass testClass = new TestClass("se.eris.notnull.TestNotNull");
-
-    @BeforeAll
-    static void beforeClass() {
-        final Configuration configuration = new Configuration(false, new AnnotationConfiguration(notNull(), Collections.emptySet()), new ExcludeConfiguration(Collections.emptySet()));
-        compilers.putAll(VersionCompiler.compile(DESTINATION_BASEDIR, configuration, testClass.getJavaFile(SRC_DIR)));
-    }
-
-    @NotNull
-    private static Set<String> notNull() {
-        final Set<String> annotations = new HashSet<>();
-        annotations.add("org.jetbrains.annotations.NotNull");
-        annotations.add("java.lang.Deprecated"); // a random Annotation for testing (not realistic use)
-        return annotations;
-    }
-
-    @TestSupportedJavaVersions
-    void annotatedParameter_shouldValidate(final String javaVersion) throws Exception {
-        final Class<?> c = compilers.get(javaVersion).getCompiledClass(testClass.getName());
-        final Method notNullParameterMethod = c.getMethod("notNullParameter", String.class);
+    @CompiledVersionsTest
+    void annotatedParameter_shouldValidate(final TestCompiler testCompiler, final Class<?> testClass) throws Exception {
+        final Method notNullParameterMethod = testClass.getMethod("notNullParameter", String.class);
         ReflectionUtil.simulateMethodCall(notNullParameterMethod, "should work");
 
-        final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> ReflectionUtil.simulateMethodCall(notNullParameterMethod, new Object[]{null}));
-        assertEquals("NotNull annotated argument 0" + VersionCompiler.maybeName(compilers.get(javaVersion), "s") +
-                " of " + testClass.getAsmName() + ".notNullParameter must not be null", exception.getMessage());
+        final IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> ReflectionUtil.simulateMethodCall(notNullParameterMethod, new Object[]{null})
+        );
+        assertEquals(
+                String.format(
+                        "NotNull annotated argument 0%s of %s.notNullParameter must not be null",
+                        testCompiler.getParameterName("s"),
+                        new TestClass(testClass.getName()).getAsmName()
+                ), exception.getMessage()
+        );
     }
 
-    @TestSupportedJavaVersions
-    void notnullReturn_shouldValidate(final String javaVersion) throws Exception {
-        final Class<?> c = compilers.get(javaVersion).getCompiledClass(testClass.getName());
-        final Method notNullReturnMethod = c.getMethod("notNullReturn", String.class);
+    @CompiledVersionsTest
+    void notnullReturn_shouldValidate(final TestCompiler testCompiler, final Class<?> testClass) throws Exception {
+        final Method notNullReturnMethod = testClass.getMethod("notNullReturn", String.class);
         ReflectionUtil.simulateMethodCall(notNullReturnMethod, "should work");
 
-        final IllegalStateException exception = assertThrows(IllegalStateException.class, () -> ReflectionUtil.simulateMethodCall(notNullReturnMethod, new Object[]{null}));
-        assertEquals("NotNull method " + testClass.getAsmName() + ".notNullReturn must not return null", exception.getMessage());
+        final IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> ReflectionUtil.simulateMethodCall(notNullReturnMethod, new Object[]{null})
+        );
+        assertEquals(
+                String.format(
+                        "NotNull method %s.notNullReturn must not return null",
+                        new TestClass(testClass.getName()).getAsmName()
+                ), exception.getMessage()
+        );
     }
 
-    @TestSupportedJavaVersions
-    void annotatedReturn_shouldValidate(final String javaVersion) throws Exception {
-        final Class<?> c = compilers.get(javaVersion).getCompiledClass(testClass.getName());
-        final Method notNullReturnMethod = c.getMethod("annotatedReturn", String.class);
+    @CompiledVersionsTest
+    void annotatedReturn_shouldValidate(final TestCompiler testCompiler, final Class<?> testClass) throws Exception {
+        final Method notNullReturnMethod = testClass.getMethod("annotatedReturn", String.class);
         ReflectionUtil.simulateMethodCall(notNullReturnMethod, "should work");
 
-        final IllegalStateException exception = assertThrows(IllegalStateException.class, () -> ReflectionUtil.simulateMethodCall(notNullReturnMethod, new Object[]{null}));
-        assertEquals("NotNull method " + testClass.getAsmName() + ".annotatedReturn must not return null", exception.getMessage());
+        final IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> ReflectionUtil.simulateMethodCall(notNullReturnMethod, new Object[]{null})
+        );
+        assertEquals(
+                String.format(
+                        "NotNull method %s.annotatedReturn must not return null",
+                        new TestClass(testClass.getName()).getAsmName()
+                ), exception.getMessage()
+        );
     }
 
-    @TestSupportedJavaVersions
-    void overridingMethod_isInstrumented(final String javaVersion) throws Exception {
-        final Class<?> subargClass = compilers.get(javaVersion).getCompiledClass(testClass.getName() + "$Subarg");
-        final Class<?> subClass = compilers.get(javaVersion).getCompiledClass(testClass.getName() + "$Sub");
-        final Method specializedMethod = subClass.getMethod("overload", subargClass);
+    @CompiledVersionsTest
+    void overridingMethod_isInstrumented(final TestCompiler testCompiler, final Class<?> outerClass) throws Exception {
+        final TestClass testClass = new TestClass(outerClass.getName());
+        final Class<?> subargClass = testCompiler.getCompiledClass(testClass.nested("Subarg"));
+
+        final TestClass subTestClass = testClass.nested("Sub");
+        final Class<?> subClass = testCompiler.getCompiledClass(subTestClass);
+        final Object subClassInstance = ReflectionUtil.simulateConstructorCall(subClass.getConstructor());
+        final String methodName = "overload";
+        final Method specializedMethod = subClass.getMethod(methodName, subargClass);
+
         assertFalse(specializedMethod.isSynthetic());
         assertFalse(specializedMethod.isBridge());
-        final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> ReflectionUtil.simulateMethodCall(subClass.newInstance(), specializedMethod, new Object[]{null}));
-        assertEquals("NotNull annotated argument 0" + VersionCompiler.maybeName(compilers.get(javaVersion), "s") +
-                " of " + testClass.getAsmName() + "$Sub.overload must not be null", exception.getMessage());
-    }
 
+        final IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> ReflectionUtil.simulateMethodCall(subClassInstance, specializedMethod, new Object[]{null})
+        );
+        assertEquals(
+                String.format(
+                        "NotNull annotated argument 0%s of %s.%s must not be null",
+                        testCompiler.getParameterName("s"),
+                        subTestClass.getAsmName(),
+                        methodName
+                ), exception.getMessage()
+        );
+    }
 }
