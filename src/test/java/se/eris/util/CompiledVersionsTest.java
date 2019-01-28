@@ -21,6 +21,7 @@ public @interface CompiledVersionsTest {
     Version NO_VERSION = Version.DEFAULT;
     String NO_DIRECTORY = "";
     String[] NO_CLASSES = {};
+    InjectCompiler NO_INJECT_COMPILER = InjectCompiler.DEFAULT;
 
     /**
      * @return the lowest supported version applicable for the test
@@ -43,6 +44,20 @@ public @interface CompiledVersionsTest {
      * @return fully qualified names of sourceClasses which should be compiled and injected into the test
      */
     String[] sourceClasses() default {};
+
+    /**
+     * Controls if a TestCompiler instance is injected as first parameter.
+     * If value is not DEFAULT the method annotation overwrites the class annotation.
+     *
+     * @return injection mode
+     */
+    InjectCompiler injectCompiler() default InjectCompiler.DEFAULT;
+
+    enum InjectCompiler {
+        DEFAULT,
+        YES,
+        NO
+    }
 
     @SuppressWarnings("unused - instances are used in iterations of Version.values()")
     enum Version {

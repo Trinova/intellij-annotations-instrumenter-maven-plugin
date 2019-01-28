@@ -7,6 +7,7 @@ import se.eris.notnull.AnnotationConfiguration;
 import se.eris.notnull.Configuration;
 import se.eris.notnull.ExcludeConfiguration;
 import se.eris.notnull.instrumentation.ClassMatcher;
+import se.eris.util.CompiledVersionsTest.InjectCompiler;
 import se.eris.util.CompiledVersionsTest.Version;
 import se.eris.util.version.VersionCompiler;
 
@@ -67,7 +68,7 @@ public class TestCompilerResolver implements ArgumentsProvider {
         //map TestCompilers to junit Argument stream
         return Arrays.stream(versions)
                 .map(Version::getVersionString)
-                .map(version -> getParameterSet(version, compilers.get(version), testSettings.classes));
+                .map(version -> getParameterSet(version, compilers.get(version), testSettings.classes, testSettings.injectCompiler));
     }
 
     private Configuration toConfiguration(InstrumentationConfiguration instrumentationConfiguration) {
@@ -84,17 +85,23 @@ public class TestCompilerResolver implements ArgumentsProvider {
     }
 
     /**
-     * @param version target and source java version
+     * @param version      target and source java version
      * @param testCompiler the test compiler instance
-     * @param classes sourceClasses to provide as arguments
+     * @param classes      sourceClasses to provide as arguments
      * @return [TestCompiler testCompiler, Class... sourceClasses, ]
      */
-    private Arguments getParameterSet(String version, TestCompiler testCompiler, String[] classes) {
-        Object[] arguments = new Object[classes.length + 1];
-        arguments[0] = testCompiler;
-        for (int i = 1; i < arguments.length; i++) {
+    private Arguments getParameterSet(String version, TestCompiler testCompiler, String[] classes, InjectCompiler injectCompiler) {
+        Object[] arguments;
+        if (injectCompiler == InjectCompiler.YES) {
+            arguments = new Object[classes.length + 1];
+            arguments[0] = testCompiler;
+        } else {
+            arguments = new Object[classes.length];
+        }
+        int offset = arguments.length - classes.length;
+        for (int i = offset; i < arguments.length; i++) {
             try {
-                arguments[i] = testCompiler.getCompiledClass(classes[i - 1]);
+                arguments[i] = testCompiler.getCompiledClass(classes[i - offset]);
             } catch (ClassNotFoundException e) {
                 throw new RuntimeException(String.format(
                         "Failed to retrieve java version %s compiled class %s",
@@ -112,6 +119,7 @@ public class TestCompilerResolver implements ArgumentsProvider {
         String sourceDirString = DEFAULT_SOURCE_DIRECTORY;
         String targetDirString = DEFAULT_TARGET_DIRECTORY;
         String[] classes = CompiledVersionsTest.NO_CLASSES;
+        InjectCompiler injectCompiler = InjectCompiler.YES;
 
         void overwrite(CompiledVersionsTest compiledVersionsTest) {
             if (compiledVersionsTest.since() != CompiledVersionsTest.NO_VERSION) {
@@ -125,6 +133,9 @@ public class TestCompilerResolver implements ArgumentsProvider {
             }
             if (compiledVersionsTest.sourceClasses().length > 0) {
                 classes = compiledVersionsTest.sourceClasses();
+            }
+            if (compiledVersionsTest.injectCompiler() != CompiledVersionsTest.NO_INJECT_COMPILER) {
+                injectCompiler = compiledVersionsTest.injectCompiler();
             }
         }
 

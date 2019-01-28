@@ -10,6 +10,7 @@ import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static se.eris.util.CompiledVersionsTest.InjectCompiler.NO;
 import static se.eris.util.CompiledVersionsTest.Version.JAVA8;
 
 @CompiledVersionsTest(since = JAVA8, sourceClasses = "se.eris.interfaze.TestInterfaceWithDefaultMethod")
@@ -49,8 +50,8 @@ class DefaultMethodTest {
         }
     }
 
-    @CompiledVersionsTest
-    void inheritedDefaultMethodShouldValidate_ReturnValue(TestCompiler testCompiler, Class<?> outerClass) throws Exception {
+    @CompiledVersionsTest(injectCompiler = NO)
+    void inheritedDefaultMethodShouldValidate_ReturnValue(Class<?> outerClass) throws Exception {
         final Object testInterfaceFromLambda = ReflectionUtil.simulateMethodCall(outerClass.getMethod(METHOD_NAME_LAMBDA));
         final Object testInterfaceFromAnonymous = ReflectionUtil.simulateMethodCall(outerClass.getMethod(METHOD_NAME_ANONYMOUS));
         for (Object testInstance : Arrays.asList(testInterfaceFromLambda, testInterfaceFromAnonymous)) {

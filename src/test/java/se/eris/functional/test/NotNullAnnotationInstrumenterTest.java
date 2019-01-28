@@ -20,6 +20,7 @@ import se.eris.util.*;
 import java.lang.reflect.Method;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static se.eris.util.CompiledVersionsTest.InjectCompiler.NO;
 
 // an arbitrary second annotation for testing (not realistic use)
 @InstrumentationConfiguration(notNull = {"org.jetbrains.annotations.NotNull", "java.lang.Deprecated"})
@@ -44,8 +45,8 @@ class NotNullAnnotationInstrumenterTest {
         );
     }
 
-    @CompiledVersionsTest
-    void notnullReturn_shouldValidate(final TestCompiler testCompiler, final Class<?> testClass) throws Exception {
+    @CompiledVersionsTest(injectCompiler = NO)
+    void notnullReturn_shouldValidate(final Class<?> testClass) throws Exception {
         final Method notNullReturnMethod = testClass.getMethod("notNullReturn", String.class);
         ReflectionUtil.simulateMethodCall(notNullReturnMethod, "should work");
 
@@ -61,8 +62,8 @@ class NotNullAnnotationInstrumenterTest {
         );
     }
 
-    @CompiledVersionsTest
-    void annotatedReturn_shouldValidate(final TestCompiler testCompiler, final Class<?> testClass) throws Exception {
+    @CompiledVersionsTest(injectCompiler = NO)
+    void annotatedReturn_shouldValidate(final Class<?> testClass) throws Exception {
         final Method notNullReturnMethod = testClass.getMethod("annotatedReturn", String.class);
         ReflectionUtil.simulateMethodCall(notNullReturnMethod, "should work");
 
