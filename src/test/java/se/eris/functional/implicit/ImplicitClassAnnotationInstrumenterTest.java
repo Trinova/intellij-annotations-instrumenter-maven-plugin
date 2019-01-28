@@ -15,68 +15,74 @@
  */
 package se.eris.functional.implicit;
 
-import org.junit.jupiter.api.BeforeAll;
+import se.eris.util.CompiledVersionsTest;
 import se.eris.util.ReflectionUtil;
 import se.eris.util.TestClass;
 import se.eris.util.TestCompiler;
-import se.eris.util.TestSupportedJavaVersions;
-import se.eris.util.version.VersionCompiler;
 
-import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
-import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static se.eris.util.CompiledVersionsTest.InjectCompiler.NO;
 
+@CompiledVersionsTest(sourceClasses = "se.eris.implicit.TestImplicitClassAnnotation")
 class ImplicitClassAnnotationInstrumenterTest {
 
-    private static final File SRC_DIR = new File("src/test/data");
-    private static final Path DESTINATION_BASEDIR = new File("target/test/data/classes").toPath();
-
-    private static final Map<String, TestCompiler> compilers = new HashMap<>();
-    private static final TestClass testClass = new TestClass("se.eris.implicit.TestImplicitClassAnnotation");
-
-    @BeforeAll
-    static void beforeClass() {
-        compilers.putAll(VersionCompiler.compile(DESTINATION_BASEDIR, testClass.getJavaFile(SRC_DIR)));
-    }
-
-    @TestSupportedJavaVersions
-    void notNullAnnotatedParameter_shouldValidate(final String javaVersion) throws Exception {
-        final Class<?> c = compilers.get(javaVersion).getCompiledClass(testClass.getName());
+    @CompiledVersionsTest(injectCompiler = NO)
+    void notNullAnnotatedParameter_shouldValidate(final Class<?> c) throws Exception {
         final Method implicitReturn = c.getMethod("implicitReturn", String.class);
         ReflectionUtil.simulateMethodCall(implicitReturn, "should work");
 
-        final IllegalStateException exception = assertThrows(IllegalStateException.class, () -> ReflectionUtil.simulateMethodCall(implicitReturn, new Object[]{null}));
-        assertEquals(exception.getMessage(), String.format("NotNull method %s.implicitReturn must not return null", testClass.getAsmName()));
+        final IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> ReflectionUtil.simulateMethodCall(implicitReturn, new Object[]{null})
+        );
+        final String expected = String.format(
+                "NotNull method %s.implicitReturn must not return null",
+                new TestClass(c.getName()).getAsmName()
+        );
+        assertEquals(
+                expected,
+                exception.getMessage()
+        );
     }
 
-    @TestSupportedJavaVersions
-    void implicitParameter_shouldValidate(final String javaVersion) throws Exception {
-        final Class<?> c = compilers.get(javaVersion).getCompiledClass(testClass.getName());
+    @CompiledVersionsTest
+    void implicitParameter_shouldValidate(final TestCompiler testCompiler, final Class<?> c) throws Exception {
         final Method implicitParameterMethod = c.getMethod("implicitParameter", String.class);
 
-        final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> ReflectionUtil.simulateMethodCall(implicitParameterMethod, new Object[]{null}));
-        final String expected = String.format("Implicit NotNull argument 0%s of %s.implicitParameter must not be null", VersionCompiler.maybeName(compilers.get(javaVersion), "s"), testClass.getAsmName());
+        final IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> ReflectionUtil.simulateMethodCall(implicitParameterMethod, new Object[]{null})
+        );
+        final String expected = String.format(
+                "Implicit NotNull argument 0%s of %s.implicitParameter must not be null",
+                testCompiler.getParameterName("s"),
+                new TestClass(c.getName()).getAsmName()
+        );
         assertEquals(expected, exception.getMessage());
     }
 
-    @TestSupportedJavaVersions
-    void implicitConstructorParameter_shouldValidate(final String javaVersion) throws Exception {
-        final Class<?> c = compilers.get(javaVersion).getCompiledClass(testClass);
+    @CompiledVersionsTest
+    void implicitConstructorParameter_shouldValidate(final TestCompiler testCompiler, final Class<?> c) throws Exception {
         final Constructor<?> implicitParameterConstructor = c.getConstructor(String.class);
 
-        final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> ReflectionUtil.simulateConstructorCall(implicitParameterConstructor, new Object[]{null}));
-        assertEquals(String.format("Implicit NotNull argument 0%s of %s.<init> must not be null", VersionCompiler.maybeName(compilers.get(javaVersion), "s"), testClass.getAsmName()), exception.getMessage());
+        final IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> ReflectionUtil.simulateConstructorCall(implicitParameterConstructor, new Object[]{null})
+        );
+        final String expected = String.format(
+                "Implicit NotNull argument 0%s of %s.<init> must not be null",
+                testCompiler.getParameterName("s"),
+                new TestClass(c.getName()).getAsmName()
+        );
+        assertEquals(expected, exception.getMessage());
     }
 
-    @TestSupportedJavaVersions
-    void anonymousClassConstructor_shouldNotBeInstrumented(final String javaVersion) throws Exception {
-        final Class<?> c = compilers.get(javaVersion).getCompiledClass(testClass.getName());
+    @CompiledVersionsTest(injectCompiler = NO)
+    void anonymousClassConstructor_shouldNotBeInstrumented(final Class<?> c) throws Exception {
         final Method anonymousClassNullable = c.getMethod("anonymousClassNullable");
         ReflectionUtil.simulateMethodCall(anonymousClassNullable);
 
