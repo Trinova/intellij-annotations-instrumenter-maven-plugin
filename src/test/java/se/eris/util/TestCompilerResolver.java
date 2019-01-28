@@ -72,7 +72,7 @@ public class TestCompilerResolver implements ArgumentsProvider {
     }
 
     private Configuration toConfiguration(InstrumentationConfiguration instrumentationConfiguration) {
-        final Set<ClassMatcher> classMatchers = Arrays.stream(instrumentationConfiguration.classMatcher())
+        final Set<ClassMatcher> classMatchers = Arrays.stream(instrumentationConfiguration.excludes())
                 .map(ClassMatcher::namePattern)
                 .collect(Collectors.toSet());
 
