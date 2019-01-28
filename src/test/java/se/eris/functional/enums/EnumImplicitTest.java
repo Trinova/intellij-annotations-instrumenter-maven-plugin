@@ -15,43 +15,20 @@
  */
 package se.eris.functional.enums;
 
-import org.junit.jupiter.api.BeforeAll;
-import se.eris.notnull.AnnotationConfiguration;
-import se.eris.notnull.Configuration;
-import se.eris.notnull.ExcludeConfiguration;
+import se.eris.util.CompiledVersionsTest;
+import se.eris.util.InstrumentationConfiguration;
 import se.eris.util.ReflectionUtil;
-import se.eris.util.TestClass;
-import se.eris.util.TestCompiler;
-import se.eris.util.TestSupportedJavaVersions;
-import se.eris.util.version.VersionCompiler;
 
-import java.io.File;
 import java.lang.reflect.Method;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+
+import static se.eris.util.CompiledVersionsTest.InjectCompiler.NO;
 
 class EnumImplicitTest {
 
-    private static final File SRC_DIR = new File("src/test/data");
-    private static final Path DESTINATION_BASEDIR = new File("target/test/data/classes").toPath();
-
-    private static final Map<String, TestCompiler> compilers = new HashMap<>();
-    private static final TestClass testClass = new TestClass("se.eris.enums.TestEnum");
-
-    @BeforeAll
-    static void beforeClass() {
-        final Configuration configuration = new Configuration(true,
-                new AnnotationConfiguration(),
-                new ExcludeConfiguration(Collections.emptySet()));
-        compilers.putAll(VersionCompiler.compile(DESTINATION_BASEDIR, configuration, testClass.getJavaFile(SRC_DIR)));
-    }
-
-    @TestSupportedJavaVersions
-    void enumParametersShouldValidate(final String javaVersion) throws Exception {
-        final Class<?> c = compilers.get(javaVersion).getCompiledClass(testClass);
-        final Method valueOf = c.getMethod("valueOf", String.class);
+    @InstrumentationConfiguration(implicit = true)
+    @CompiledVersionsTest(sourceClasses = "se.eris.enums.TestEnum", injectCompiler = NO)
+    void enumParametersShouldValidate(final Class<?> testClass) throws Exception {
+        final Method valueOf = testClass.getMethod("valueOf", String.class);
 
         ReflectionUtil.simulateMethodCall(valueOf, "FALSE"); // will initialize class (calling constructors)
     }
