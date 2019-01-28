@@ -15,78 +15,61 @@
  */
 package se.eris.functional.exclude;
 
-import org.junit.jupiter.api.BeforeAll;
-import se.eris.notnull.AnnotationConfiguration;
-import se.eris.notnull.Configuration;
-import se.eris.notnull.ExcludeConfiguration;
-import se.eris.notnull.instrumentation.ClassMatcher;
-import se.eris.util.ReflectionUtil;
-import se.eris.util.TestClass;
-import se.eris.util.TestCompiler;
-import se.eris.util.TestSupportedJavaVersions;
-import se.eris.util.version.VersionCompiler;
+import se.eris.util.*;
 
-import java.io.File;
 import java.lang.reflect.Method;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static se.eris.util.CompiledVersionsTest.InjectCompiler.NO;
 
 /**
  * Tests to verify that package exclusion works.
  */
+@InstrumentationConfiguration(implicit = true, excludes = "se.eris.exclude.*")
+@CompiledVersionsTest(sourceClasses = "se.eris.exclude.TestExclude")
 class ExcludeImplicitClassesTest {
 
-    private static final File SRC_DIR = new File("src/test/data");
-    private static final Path DESTINATION_BASEDIR = new File("target/test/data/classes").toPath();
 
-    private static final Map<String, TestCompiler> compilers = new HashMap<>();
-    private static final TestClass testClass = new TestClass("se.eris.exclude.TestExclude");
-
-    @BeforeAll
-    static void beforeClass() {
-        final Configuration configuration = new Configuration(true,
-                new AnnotationConfiguration(),
-                new ExcludeConfiguration(Collections.singleton(ClassMatcher.namePattern("se.eris.exclude.*"))));
-        compilers.putAll(VersionCompiler.compile(DESTINATION_BASEDIR, configuration, testClass.getJavaFile(SRC_DIR)));
-    }
-
-    @TestSupportedJavaVersions
-    void annotatedParameter_shouldValidate(final String javaVersion) throws Exception {
-        final Class<?> clazz = compilers.get(javaVersion).getCompiledClass(testClass.getName());
-        final Method notNullParameterMethod = clazz.getMethod("notNullParameter", String.class);
+    @CompiledVersionsTest
+    void annotatedParameter_shouldValidate(final TestCompiler testCompiler, Class<?> testClass) throws Exception {
+        final String methodName = "notNullParameter";
+        final Method notNullParameterMethod = testClass.getMethod(methodName, String.class);
 
         final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> ReflectionUtil.simulateMethodCall(notNullParameterMethod, (Object) null));
-        assertEquals("NotNull annotated argument 0" + VersionCompiler.maybeName(compilers.get(javaVersion), "s") +
-                " of " + testClass.getAsmName() + ".notNullParameter must not be null", exception.getMessage());
+        final String expected = String.format(
+                "NotNull annotated argument 0%s of %s.%s must not be null",
+                testCompiler.getParameterName("s"),
+                new TestClass(testClass.getName()).getAsmName(),
+                methodName
+        );
+        assertEquals(expected, exception.getMessage());
     }
 
-    @TestSupportedJavaVersions
-    void annotatedReturn_shouldValidate(final String javaVersion) throws Exception {
-        final Class<?> c = compilers.get(javaVersion).getCompiledClass(testClass.getName());
-        final Method notNullReturnMethod = c.getMethod("notNullReturn", String.class);
+    @CompiledVersionsTest(injectCompiler = NO)
+    void annotatedReturn_shouldValidate(Class<?> testClass) throws Exception {
+        final String methodName = "notNullReturn";
+        final Method notNullReturnMethod = testClass.getMethod(methodName, String.class);
 
         final IllegalStateException exception = assertThrows(IllegalStateException.class, () -> ReflectionUtil.simulateMethodCall(notNullReturnMethod, new Object[]{null}));
-        assertEquals("NotNull method " + testClass.getAsmName() + ".notNullReturn must not return null", exception.getMessage());
+        final String expected = String.format(
+                "NotNull method %s.%s must not return null",
+                new TestClass(testClass.getName()).getAsmName(),
+                methodName
+        );
+        assertEquals(expected, exception.getMessage());
     }
 
-    @TestSupportedJavaVersions
-    void notAnnotatedParameter_shouldNotValidate(final String javaVersion) throws Exception {
-        final Class<?> c = compilers.get(javaVersion).getCompiledClass(testClass.getName());
+    @CompiledVersionsTest(injectCompiler = NO)
+    void notAnnotatedParameter_shouldNotValidate(Class<?> c) throws Exception {
         final Method notNullParameterMethod = c.getMethod("unAnnotatedParameter", String.class);
 
         ReflectionUtil.simulateMethodCall(notNullParameterMethod, (Object) null);
     }
 
-    @TestSupportedJavaVersions
-    void notAnnotatedReturn_shouldNotValidate(final String javaVersion) throws Exception {
-        compilers.get(javaVersion).getCompiledClass(testClass.getName());
-        final Class<?> c = compilers.get(javaVersion).getCompiledClass(testClass.getName());
-        final Method notNullParameterMethod = c.getMethod("unAnnotatedReturn", String.class);
+    @CompiledVersionsTest(injectCompiler = NO)
+    void notAnnotatedReturn_shouldNotValidate(Class<?> testClass) throws Exception {
+        final Method notNullParameterMethod = testClass.getMethod("unAnnotatedReturn", String.class);
 
         ReflectionUtil.simulateMethodCall(notNullParameterMethod, (Object) null);
     }
